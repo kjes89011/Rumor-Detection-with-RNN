@@ -23,7 +23,8 @@ import gensim
 mypath = "./data/"
 Evenlist = listdir(mypath)
 TIME_STEPS = 12
-IMPUT_SIZE = 625	
+InputWord = 10	
+IMPUT_SIZE = 300*InputWord
 BATCH_SIZE = 30
 BATCH_INDEX = 0
 OUTPUT_SIZE = 2
@@ -159,23 +160,26 @@ for event in Evenlist:
 	# print(vectorizer.get_feature_names())
 	Input = []
 	for interval in tfidf.toarray():
+		Wordvector = []
 		WordvectorMatrix = []
 		NonZeroCount = 0
 		interval,Allvocabulary = zip(*sorted(zip(interval, Allvocabulary),reverse=True))
 		for word,value in zip(Allvocabulary,interval):
-			if value != 0.0 and NonZeroCount < IMPUT_SIZE:
+			if value != 0.0 and NonZeroCount < InputWord:#IMPUT_SIZE
 				try:
-					WordvectorMatrix.append(model[word])
+					Wordvector = np.append(Wordvector,model[word])
+					# WordvectorMatrix.append(model[word])
 					NonZeroCount+=1
 				except:
 					print("word : "+word+" not in model")
-		while NonZeroCount < IMPUT_SIZE:
-			WordvectorMatrix.append([0.0] * 300)
+		while NonZeroCount < InputWord:#IMPUT_SIZE
+			Wordvector = np.append(Wordvector,([0.0] * 300))
+			# WordvectorMatrix.append([0.0] * 300)
 			NonZeroCount+=1	
-		Input.append(WordvectorMatrix)
+		Input.append(Wordvector)#(WordvectorMatrix)
 	if len(Input) < TIME_STEPS:
 		for q in range(0,TIME_STEPS-len(Input)):
-			Input.insert(0,[[0.0] * 300] * IMPUT_SIZE)
+			Input.insert(0,[0.0] * 300 * IMPUT_SIZE)
 	totalData.append(Input[:TIME_STEPS])
 	totalDataLabel.append(Label)
 	
