@@ -1,4 +1,6 @@
 #-*- coding: utf-8 -*-
+# This is a version implement a paper:"Detecting Rumors from Microblogs with Recurrent Neural Networks"(https://ijcai.org/Proceedings/16/Papers/537.pdf)
+# I change the parameter for my best prediction.
 import json,os
 from os import listdir
 import time
@@ -12,22 +14,20 @@ np.random.seed(3)	#固定seed讓每次的random都一樣
 from keras.models import Sequential
 # For add fully connected layer
 from keras.layers import Dense,Activation,SimpleRNN
+#keras 的手寫數字1~9的數據集
+from keras.datasets import mnist
 from keras.utils import np_utils
 from keras.optimizers import Adam,Adagrad
-#For Word2vec
-import gensim
-
 
 mypath = "./data/"
 Evenlist = listdir(mypath)
 TIME_STEPS = 12
 IMPUT_SIZE = 625	
-BATCH_SIZE = 1
+BATCH_SIZE = 30
 BATCH_INDEX = 0
 OUTPUT_SIZE = 2
-CELL_SIZE = 100
-LR = 0.5
-model = gensim.models.KeyedVectors.load_word2vec_format('D:/GoogleWord2vec/GoogleNews-vectors-negative300.bin/GoogleNews-vectors-negative300.bin', binary=True)
+CELL_SIZE = 175
+LR = 0.001
 
 def ContinuousInterval(intervalL):
 	maxInt = []
@@ -156,40 +156,29 @@ for event in Evenlist:
 	Allvocabulary = vectorizer.get_feature_names()
 	# print(vectorizer.get_feature_names())
 	Input = []
+	
 	for interval in tfidf.toarray():
-		WordvectorMatrix = []
-		NonZeroCount = 0
-		interval,Allvocabulary = zip(*sorted(zip(interval, Allvocabulary),reverse=True))
-		for word,value in zip(Allvocabulary,interval):
-			if value != 0.0 and NonZeroCount < IMPUT_SIZE:
-				try:
-					WordvectorMatrix.append(model[word])
-					NonZeroCount+=1
-				except:
-					print("word : "+word+" not in model")
-		while NonZeroCount < IMPUT_SIZE:
-			WordvectorMatrix.append([0.0] * 300)
-			NonZeroCount+=1	
-		Input.append(WordvectorMatrix)
+		interval = sorted(interval,reverse=True)
+		while len(interval) < IMPUT_SIZE:
+			interval.append(0.0)
+		Input.append(interval[:IMPUT_SIZE])
 	if len(Input) < TIME_STEPS:
 		for q in range(0,TIME_STEPS-len(Input)):
-			Input.insert(0,[[0.0] * 300] * IMPUT_SIZE)
+			Input.insert(0,[0.0] * IMPUT_SIZE)
 	totalData.append(Input[:TIME_STEPS])
 	totalDataLabel.append(Label)
 	
-# print("totalDoc : "+str(totalDoc))
-# print("tdlist1 : "+str(tdlist1))
-# print("Pos : "+str(Pos))
-# print("Neg : "+str(Neg))
-# print("totalpost : "+str(totalpost))
-# print("maxpost : "+str(maxpost))
-# print("minpost : "+str(minpost))
+print("totalDoc : "+str(totalDoc))
+print("tdlist1 : "+str(tdlist1))
+print("Pos : "+str(Pos))
+print("Neg : "+str(Neg))
+print("totalpost : "+str(totalpost))
+print("maxpost : "+str(maxpost))
+print("minpost : "+str(minpost))
 
 X_train = np.array(totalData[:int(counter/5*4)])
-print(X_train.shape)
 # for q in X_train:
-# 	for w in q :
-# 		print(w)
+# 	print(q)
 y_train = np.array(totalDataLabel[:int(counter/5*4)])
 # for q in y_train:
 # 	print(q)
@@ -197,35 +186,35 @@ print(X_train.shape)
 X_test = np.array(totalData[int(counter/5*4):])
 y_test = np.array(totalDataLabel[int(counter/5*4):])
 print(X_test.shape)
-# #RNN
-# # X_train = X_train.reshape(-1,TIME_STEPS,IMPUT_SIZE)		#normalize
-# # X_test = X_test.reshape(-1,TIME_STEPS,IMPUT_SIZE)		#normalize
-# y_train = np_utils.to_categorical(y_train,num_classes = 2)
-# y_test = np_utils.to_categorical(y_test,num_classes = 2)
-# #print(y_train.shape)
-# model = Sequential()
+#RNN
+# X_train = X_train.reshape(-1,TIME_STEPS,IMPUT_SIZE)		#normalize
+# X_test = X_test.reshape(-1,TIME_STEPS,IMPUT_SIZE)		#normalize
+y_train = np_utils.to_categorical(y_train,num_classes = 2)
+y_test = np_utils.to_categorical(y_test,num_classes = 2)
+#print(y_train.shape)
+model = Sequential()
 
-# #RNN cell
-# model.add(SimpleRNN(CELL_SIZE,input_shape=(TIME_STEPS,IMPUT_SIZE)))
+#RNN cell
+model.add(SimpleRNN(CELL_SIZE,input_shape=(TIME_STEPS,IMPUT_SIZE)))
 
-# #output layer
-# model.add(Dense(OUTPUT_SIZE))
-# model.add(Activation('softmax'))
+#output layer
+model.add(Dense(OUTPUT_SIZE))
+model.add(Activation('softmax'))
 
-# #optimizer
-# Adagrad = Adagrad(LR)
+#optimizer
+Adagrad = Adagrad(LR)
 
-# model.compile(optimizer = Adagrad,loss = 'mean_squared_error',metrics = ['accuracy'])
+model.compile(optimizer = Adagrad,loss = 'mean_squared_error',metrics = ['accuracy'])
 
-# #train
-# print("Training---------")
+#train
+print("Training---------")
 
-# model.fit(X_train,y_train,epochs=12,batch_size=BATCH_SIZE)
+#model.fit(X_train,y_train,epochs=8000,batch_size=BATCH_SIZE)
 
-# print("\nTesting---------")
-# cost,accuracy = model.evaluate(X_test,y_test,batch_size=y_test.shape[0], verbose=False)
-# print('test cost: ',cost)
-# print('test accuracy: ',accuracy)
+print("\nTesting---------")
+#cost,accuracy = model.evaluate(X_test,y_test,batch_size=y_test.shape[0], verbose=False)
+print('test cost: ',cost)
+print('test accuracy: ',accuracy)
 
 # for step in range(3001):
 # 	X_batch = X_train[BATCH_INDEX:BATCH_INDEX+BATCH_SIZE, :, :]
